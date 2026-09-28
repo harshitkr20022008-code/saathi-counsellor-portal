@@ -1,7 +1,13 @@
 # Render blueprint for SAATHI.
-# Dashboard -> Blueprints -> New Blueprint Instance -> select this repo.
+# Apply: Render Dashboard -> Blueprints -> New Blueprint Instance -> pick this repo.
+#
+# Service names determine the public URLs, which CORS_ORIGINS below depends on:
+#   https://saathi-api.onrender.com   (API)
+#   https://saathi-web.onrender.com   (static site)
+# If Render renames either service, update CORS_ORIGINS to match.
 
 services:
+  # --- FastAPI backend ---
   - type: web
     name: saathi-api
     runtime: python
@@ -10,12 +16,12 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeployTrigger: commit
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: MONGO_URL
-        sync: false # set in dashboard: your MongoDB Atlas SRV string
+        sync: false # paste your MongoDB Atlas SRV string in the dashboard
       - key: DB_NAME
         value: saathi
       - key: JWT_SECRET
@@ -25,22 +31,25 @@ services:
       - key: SEED_OWNER_EMAIL
         value: counsellor@saathi.org
       - key: CORS_ORIGINS
-        sync: false # set in dashboard: the static site URL below
+        value: https://saathi-web.onrender.com
 
-staticSites:
+  # --- React static site ---
+  # Static sites are declared here (not in a `staticSites` key) with
+  # runtime: static, and use staticPublishPath instead of startCommand.
   - type: web
     name: saathi-web
+    runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
-    publishDir: dist
-    autoDeploy: true
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
     routes:
+      # Serve index.html for client-side routes like /cases/:id
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
+      # Hardcoded rather than fromService: "host" resolves to the private
+      # network hostname, which a browser cannot reach.
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: saathi-api
-          property: host
+        value: https://saathi-api.onrender.com
