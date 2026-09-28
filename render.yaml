@@ -1,0 +1,42 @@
+# Render blueprint for SAATHI.
+# Dashboard -> Blueprints -> New Blueprint Instance -> select this repo.
+
+services:
+  - type: web
+    name: saathi-api
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: MONGO_URL
+        sync: false # set in dashboard: your MongoDB Atlas SRV string
+      - key: DB_NAME
+        value: saathi
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false # set in dashboard: the static site URL below
+
+staticSites:
+  - type: web
+    name: saathi-web
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    publishDir: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: saathi-api
+          property: host

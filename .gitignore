@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Credentials / local notes
+test_credentials.md
+
+# Superseded duplicate frontend at repo root. These reference @/pages/* and
+# never resolved; the working app now lives in frontend/src. Safe to delete.
+# Remove these five lines if you want them committed.
+/AlertsPanel.jsx
+/App.css
+/App.js
+/AssessmentModal.jsx
+/CaseDetail.jsx
+/CasesList.jsx
+/Dashboard.jsx
+/Login.jsx
+/VictimPlaceholder.jsx
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
