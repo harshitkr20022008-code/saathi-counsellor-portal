@@ -466,6 +466,17 @@ app.add_middleware(
 
 # --- Seed data ---
 async def seed_data():
+    # Validate config before touching Mongo so misconfiguration fails fast.
+    seed_password = os.environ.get("SEED_PASSWORD", "").strip()
+    if not seed_password:
+        raise RuntimeError(
+            "SEED_PASSWORD is required to seed counsellor accounts. "
+            "Set it in .env or as a Render env var."
+        )
+    owner_email = os.environ.get(
+        "SEED_OWNER_EMAIL", "counsellor@saathi.org"
+    ).strip()
+
     # Indexes
     await db.counsellors.create_index("email", unique=True)
     await db.cases.create_index("case_id", unique=True)
@@ -473,10 +484,11 @@ async def seed_data():
     await db.alerts.create_index("case_ref")
 
     # Counsellors
+    # Passwords come from SEED_PASSWORD so no credential lives in source.
     counsellors_seed = [
-        {"email": "harshitkr20022008@gmail.com", "name": "Harshit Kumar", "password": "saathi123", "language": "en"},
-        {"email": "priya@saathi.org", "name": "Priya Sharma", "password": "saathi123", "language": "en"},
-        {"email": "rajesh@saathi.org", "name": "Rajesh Iyer", "password": "saathi123", "language": "en"},
+        {"email": owner_email, "name": "Lead Counsellor", "language": "en"},
+        {"email": "priya@saathi.org", "name": "Priya Sharma", "language": "en"},
+        {"email": "rajesh@saathi.org", "name": "Rajesh Iyer", "language": "en"},
     ]
     counsellor_ids = {}
     for c in counsellors_seed:
@@ -490,7 +502,7 @@ async def seed_data():
             "id": cid,
             "email": c["email"],
             "name": c["name"],
-            "password_hash": hash_password(c["password"]),
+            "password_hash": hash_password(seed_password),
             "language": c["language"],
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
@@ -500,7 +512,7 @@ async def seed_data():
     if existing_count > 0:
         return
 
-    owner = counsellor_ids["harshitkr20022008@gmail.com"]
+    owner = counsellor_ids[owner_email]
     priya = counsellor_ids["priya@saathi.org"]
 
     now = datetime.now(timezone.utc)
